@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="cs"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vražda v penzionu U Zlaté hvězdy</title>
+<style>
+:root{--bg:#fbf6ee;--fg:#2a1f1f;--card:#fff;--acc:#a4262c;--mut:#7a6a6a;--line:#e6dccb;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1416;--fg:#f3e9e4;--card:#2a1f22;--acc:#e0646b;--mut:#b09a9a;--line:#433236;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1b1416;--fg:#f3e9e4;--card:#2a1f22;--acc:#e0646b;--mut:#b09a9a;--line:#433236;color-scheme:dark}
+[hidden]{display:none!important}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 Georgia,serif}
+main{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;text-align:center;margin:8px 0 4px;color:var(--acc)}
+.sub{text-align:center;color:var(--mut);margin:0 0 16px;font-size:.9rem}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.door{aspect-ratio:1;border:2px solid var(--acc);background:var(--card);color:var(--acc);border-radius:10px;font:bold 1.3rem Georgia,serif;cursor:pointer}
+.door.open{background:var(--acc);color:var(--bg)}
+.door.q:not(.open)::after{content:" ?";font-size:.9rem}
+.door:disabled{opacity:.35;cursor:not-allowed}
+.box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:16px 0}
+.box h2{margin:0 0 6px;font-size:1.1rem;color:var(--acc)}
+.box p{margin:0 0 8px}
+input,textarea{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);width:55%}
+button.b{font:inherit;padding:8px 12px;border:0;border-radius:8px;background:var(--acc);color:var(--bg);margin:2px}
+button.g{background:none;border:1px solid var(--line);color:var(--fg)}
+button.g.on{border-color:var(--acc);background:var(--acc);color:var(--bg)}
+h3{margin:18px 0 8px;font-size:1rem}
+textarea{width:100%;box-sizing:border-box;min-height:130px}
+.sus{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.s{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;font-size:.9rem;cursor:pointer}
+.s small{display:block;color:var(--mut)}
+.s.sel{border-color:var(--acc)}
+.msg{color:var(--acc);font-weight:bold}
+.tools{display:flex;gap:8px;justify-content:center;margin-top:20px}
+.tools button{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;padding:6px 10px;font:inherit;font-size:.8rem}
+</style></head><body>
+<main id="intro"><h1>Vražda v penzionu U Zlaté hvězdy</h1>
+<div class="box"><h2>Pravidla</h2>
+<p>Osm lidí uvízlo v zasněženém penzionu a jeden z nich je vrah. Každý den otevři jedno okénko a získáš novou stopu.</p>
+<p>Některá okénka skrývají hádanku. Odpověď najdeš v dřívějších stopách.</p>
+<p>Vždy se zobrazí jen dnešní okénko. Starší okénka už znovu otevřít nejdou, takže si důležité zapisuj do zápisníku. Výjimkou jsou hádanky, které zůstanou, dokud je nevyřešíš.</p>
+<p>U podezřelých si můžeš dát poznámku. Vraha můžeš obvinit u podezřelých, nejpozději do 23. prosince a jen jednou. Pokud to neuděláš, otázka na vraha tě čeká u dvířek 24. prosince.</p>
+<p><b>Kdo mi pošle fotku se správným řešením, má u mě drobnost.</b></p>
+<p>Zadej celé jméno. Když ho napíšeš stejně na jiném zařízení, najdeš tam svůj postup i zápisník.</p>
+<input id="nm" placeholder="Jméno a příjmení" style="width:65%"> <button class="b" id="start">Začít</button><p class="msg" id="nmsg"></p></div></main>
+<main id="app" hidden>
+<h1>Vražda v penzionu U Zlaté hvězdy</h1>
+<p class="sub">Každý den nová stopa, některá dvířka skrývají hádanku. Vyšetřuj si v poznámkách u podezřelých.</p>
+<div class="grid" id="grid"></div>
+<div id="clue" class="box" hidden></div>
+<h3>Zápisník</h3>
+<textarea id="pad" placeholder="Sem si zapisuj důležité stopy. Zůstanou tu uložené."></textarea>
+<h3>Podezřelí (klepni pro složku)</h3>
+<div class="sus" id="sus"></div>
+<div id="file" class="box" hidden></div>
+<div class="tools"><button id="test">Testovací režim: odemknout vše</button><span id="tbox" hidden><input id="tcode" type="password" inputmode="numeric" placeholder="Kód" style="width:5em"> <button id="tok">OK</button></span><button id="reset">Začít znovu</button><span id="rbox" hidden><input id="rcode" type="password" inputmode="numeric" placeholder="Kód" style="width:5em"> <button id="rok">OK</button></span></div>
+</main>
+<script>
+var D=[
+["Nález těla","Ráno 1. prosince najde kuchařka majitele penzionu, pana Ambrože Hvězdu, mrtvého ve vinném sklípku. Sněhová bouře uzavřela silnici, vrah je tedy mezi lidmi v domě."],
+["Místo činu","U těla stojí hrnek svařáku. Doktor Soukup ráno pana Hvězdu prohlédl a odhaduje, že zemřel kolem půl jedné v noci."],
+["Osm podezřelých","V penzionu uvízlo osm lidí: kuchařka Markéta, účetní Dvořák, neteř Kamila, instruktor Bruno, paní Hrubá, správce Vilém, doktor Soukup a recepční Lucie. Jejich složky najdeš dole."],
+["Lístek","V kapse zesnulého je lístek: „Zítra u snídaně vám řeknu pravdu. A. H.“ Písmo ale nepatří panu Hvězdovi a papír je z penzionu, někdo mu lístek podstrčil. Zdá se, že každý v domě měl co skrývat."],
+["Svařák","Markéta uvařila svařák v deset večer a pili z něj všichni. Jed tedy musel přibýt až do hrnku pana Hvězdy."],
+["Klíč","Klíč od sklípku zůstal v zámku zevnitř. Pan Hvězda tam šel sám, nejspíš na schůzku."],
+["Kroky v hale","Dvořák tvrdí, že slyšel kolem půlnoci v hale kroky a ucítil vůni růží."],
+["Kolik jich je?","Správně. Sníh zavalil silnici, nikdo neodešel. Dvořák přiznává, že v účtech chybí peníze, a ukazuje na Lucii.","Kolik lidí je podezřelých? (viz 3. prosince) Stačí číslem i slovem.",["8","osm"]],
+["Bruno","Bruno tvrdí, že celou noc jezdil s rolbou. GPS ale ukazuje, že stála od 23:40 do 0:50."],
+["Kamila","Kamila prý telefonovala s rodiči do jedné. Rodiče říkají, že hovor skončil dřív, ale přesný čas si nepamatují."],
+["Jed","Laboratoř potvrzuje, že jed pochází z tisu. Vánoční věnec v hale je z tisových větví a jedna chybí."],
+["Z jaké rostliny?","Správně, z tisu. Doktor Soukup tvrdí, že celou noc hlídal u postele paní Hrubou, která měla horečku. Ona to potvrzuje.","Z jaké rostliny pochází jed? (viz 11. prosince) Stačí jedno slovo.",["tis"]],
+["Otisky","Na schodech do sklípku jsou vlhké otisky malé ženské boty, velikost kolem 37."],
+["Vilém","Vilém říká, že byl celou noc zavřený v kotelně. Na jeho bundě je ale skvrna od červeného vína."],
+["Spálená kniha","Lucie přiznává, že účetní knihu spálila, protože si půjčovala peníze z pokladny. S vraždou prý nemá nic společného. O půlnoci tedy byla v hale, což vysvětluje kroky i vůni růží."],
+["Čas smrti","Vilém se zlomí: kolem 23:50 si šel do sklípku pro láhev a pana Hvězdu našel už mrtvého. Strachem utekl. Soukupův odhad tedy zřejmě nesedí.","V kolik hodin doktor odhadl smrt? (viz 2. prosince) Napiš třeba ve tvaru 3:45.",["0:30","00:30","puljedne"]],
+["Fotografie","V peněžence zesnulého je stará fotka mladého páru před penzionem. Na rubu stojí: „Hrubých penzion, 1994“."],
+["Zamilovaní","Bruno s Kamilou přiznávají tajný vztah. O půlnoci se potají sešli ve stodole, Kamila proto hovor ukončila dřív."],
+["Berle","Správce si všiml, že berle paní Hrubé jsou každá jinak vysoká."],
+["Rok na fotce","Správně. Pan Hvězda v roce 1994 koupil penzion v dražbě od Hrubých, kteří přišli o všechno. Paní Hrubá se sem letos vrátila poprvé po třiceti letech.","Který rok je na fotce z 17. prosince? Napiš čtyřmístné číslo.",["1994"]],
+["Soukup","Soukup si vzpomíná, že kolem půl dvanácté náhle usnul a vzbudil se až po druhé s bolestí hlavy. Čaj, který mu paní Hrubá nalila, byl hořký."],
+["Sedativum","Šálek po Soukupově čaji obsahoval stopy silného sedativa. Lékárnička penzionu je v pořádku, někdo ho tedy přinesl s sebou."],
+["Bez berlí","Markéta ráno viděla paní Hrubou odcházet do jídelny bez berlí. Když si všimla, že ji někdo sleduje, rychle se o ně opřela."],
+["Rozuzlení","Vrahyní je paní Hrubá! Po třiceti letech se vrátila pomstít rodinu. Soukupovi dala sedativum, aby měla alibi i volné ruce, přes tisový jed ve svařáku se pana Hvězdu dostala v pravý čas a pak se zase vrátila k předstírané slabosti. Podstrčený lístek měl rozptýlit podezření mezi všechny, kdo něco skrývali. Lucie, Bruno i Vilém lhali jen kvůli vlastním tajemstvím. Příjemné svátky!","Kdo je vrah? Napiš jméno podezřelého. Odpovědět jde jen jednou.",["hruba","hrubova","panihruba"]]
+];
+var S=[
+["marketa","Markéta","kuchařka","Dostala výpověď.","Do půlnoci pekla štoly s pomocnicí."],
+["dvorak","Dvořák","účetní","Vedl účty, kde chyběly peníze.","Spal, jeho chrápání slyšelo celé patro."],
+["kamila","Kamila","neteř","Dědička penzionu.","Videohovor s rodiči do jedné."],
+["bruno","Bruno","instruktor","Majitel mu zakázal vztah s Kamilou.","Celou noc na svahu s rolbou."],
+["hruba","paní Hrubá","hostka","V penzionu poprvé po letech.","Měla horečku, hlídal ji doktor. Chodí o berlích."],
+["vilem","Vilém","správce","Spor o plat.","Celou noc v kotelně."],
+["soukup","doktor Soukup","lékař","Dlužil panu Hvězdovi peníze.","Hlídal paní Hrubou do rána."],
+["lucie","Lucie","recepční","Brala peníze z pokladny.","Od 23:00 spala v pokoji."]];
+var K="advent-v2",st={o:[],n:{},t:""},test=false,now=new Date(),sel=null;
+var who="",dbh=null,tm=null;
+function key(n){return n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}
+function save(){try{localStorage.setItem(K+"-"+who,JSON.stringify(st))}catch(e){}
+ if(dbh){clearTimeout(tm);tm=setTimeout(function(){dbh.doc("players/"+who).set({st:JSON.stringify(st)}).catch(function(){})},800)}}
+function ok(d){return test||(now.getMonth()==11&&now.getDate()>=d)}
+function has(d){return st.o.indexOf(d)>-1}
+function today(){return now.getMonth()==11?Math.min(now.getDate(),24):0}
+function vis(d){return test||d==today()||(D[d-1][2]&&!has(d)&&d<today())}
+function norm(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f\s]/g,"").replace(/[.,]/g,":")}
+function draw(){
+ var g=document.getElementById("grid");g.innerHTML="";
+ for(var d=1;d<=24;d++)(function(d){if(!vis(d))return;var b=document.createElement("button");b.className="door"+(has(d)?" open":"")+(D[d-1][2]?" q":"");b.textContent=d;b.disabled=!ok(d)||(has(d)&&d!=Math.max.apply(null,st.o));b.onclick=function(){show(d)};g.appendChild(b)})(d);
+ var s=document.getElementById("sus");s.innerHTML="";
+ S.forEach(function(p){var e=document.createElement("div");e.className="s"+(sel==p[0]?" sel":"");var m={q:"❓",s:"🔴",n:"✅"}[st.n[p[0]]]||"";e.innerHTML="<b>"+p[1]+" "+m+"</b><small>"+p[2]+"</small>";e.onclick=function(){sel=p[0];file();draw()};s.appendChild(e)})
+}
+function show(d){
+ var c=document.getElementById("clue"),x=D[d-1];c.hidden=false;
+ if(x[2]&&!has(d)&&!(d==24&&st.acc)){
+  c.innerHTML="<h2>"+d+". prosince: hádanka</h2><p>"+x[2]+"</p><input id=a placeholder='Odpověď'> <button class=b id=go>Odpovědět</button><p class=msg id=m></p>";
+  document.getElementById("go").onclick=function(){
+   var v=norm(document.getElementById("a").value);
+   if(d==24&&v.length>2){st.acc=v;st.o.push(d);save();show(d);draw();return}
+   if(x[3].some(function(a){return norm(a)==v})){st.o.push(d);save();show(d);draw()}
+   else document.getElementById("m").textContent="To nesedí, zkus znovu a podívej se do dřívějších stop."}
+ }else{
+  if(!has(d)){st.o.push(d);save()}
+  c.innerHTML="<h2>"+d+". prosince: "+x[0]+"</h2><p>"+(d==24?(x[3].some(function(a){return norm(a)==st.acc})?"Máš pravdu! ":"Bohužel to není ono. "):"")+x[1]+"</p>";
+ }
+ draw();c.scrollIntoView({behavior:"smooth",block:"nearest"})
+}
+function file(){
+ var f=document.getElementById("file"),p=S.filter(function(a){return a[0]==sel})[0];if(!p){f.hidden=true;return}
+ f.hidden=false;
+ var h="<h2>"+p[1]+"</h2><p><b>Motiv:</b> "+p[3]+"</p><p><b>Alibi:</b> "+p[4]+"</p><p>Moje poznámka:</p>";
+ [["q","❓ nevím"],["s","🔴 podezřelý"],["n","✅ nevinný"]].forEach(function(o){h+="<button class='b g"+(st.n[sel]==o[0]?" on":"")+"' data-n="+o[0]+">"+o[1]+"</button>"});
+ 
+ if(!has(24)){if(st.acc){var q=S.filter(function(a){return a[0]==st.acc})[0];h+="<p class=msg>Tvůj tip na vraha: "+(q?q[1]:st.acc)+". Výsledek se dozvíš 24. prosince.</p>"}else if(today()<24||test)h+="<p><button class=b id=acc>Obvinit "+p[1]+"</button><br><small>Obvinit můžeš jen jednou, nejpozději do 23. prosince.</small></p>"}
+ f.innerHTML=h;
+ var ab=document.getElementById("acc");
+ if(ab)ab.onclick=function(){if(!ab.dataset.s){ab.dataset.s=1;ab.textContent="Opravdu? Klepni znovu, jde to jen jednou";return}st.acc=sel;save();file()};
+ f.querySelectorAll("[data-n]").forEach(function(b){b.onclick=function(){st.n[sel]=b.dataset.n;save();file();draw()}});
+}
+document.getElementById("test").onclick=function(){if(test){test=false;this.textContent="Testovací režim: odemknout vše";draw();return}document.getElementById("tbox").hidden=false;document.getElementById("tcode").focus()};
+document.getElementById("tok").onclick=function(){var c=document.getElementById("tcode");if(c.value=="6556"){test=true;document.getElementById("test").textContent="Testovací režim: zapnuto";document.getElementById("tbox").hidden=true;draw()}c.value=""};
+var doReset=function(){st={o:[],n:{},t:""};save();sel=null;document.getElementById("pad").value="";document.getElementById("clue").hidden=true;file();draw()};
+document.getElementById("reset").onclick=function(){document.getElementById("rbox").hidden=false;document.getElementById("rcode").focus()};
+document.getElementById("rok").onclick=function(){var c=document.getElementById("rcode");if(c.value=="6556"){doReset();document.getElementById("rbox").hidden=true}c.value=""};
+var pad=document.getElementById("pad");pad.oninput=function(){st.t=pad.value;save()};
+var nm=document.getElementById("nm");try{nm.value=localStorage.getItem(K+"-last")||""}catch(e){}
+document.getElementById("start").onclick=async function(){
+ var n=nm.value.trim(),k=key(n),m=document.getElementById("nmsg");
+ if(n.split(/\s+/).length<2||k.length<4){m.textContent="Napiš prosím jméno i příjmení.";return}
+ who=k;m.textContent="Načítám…";
+ try{localStorage.setItem(K+"-last",n);st=JSON.parse(localStorage.getItem(K+"-"+who))||st}catch(e){}
+ try{var db=await Promise.race([claude.use("db"),new Promise(function(r){setTimeout(function(){r(null)},4000)})]);
+  if(db){dbh=db;var sn=await db.doc("players/"+who).get();if(sn.exists)st=JSON.parse(sn.data().st)}}catch(e){}
+ st.o=st.o||[];st.n=st.n||{};pad.value=st.t||"";
+ document.getElementById("intro").hidden=true;document.getElementById("app").hidden=false;
+ draw();file();save();
+};
+</script></body></html>
